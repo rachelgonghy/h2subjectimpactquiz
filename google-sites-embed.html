@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H2 Subject Impact Quiz - Google Sites Embed</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        // --- CONSTANTS ---
+        const SUBJECTS_DATA = [
+            { id: 'biology', name: 'Biology', icon: '🧬', requiredFor: ['Biological Sciences', 'Environmental Studies', 'Environmental Earth Systems Science', 'Food Science & Technology', 'Chemistry & Biological Chemistry', 'Speech and Language Therapy'] },
+            { id: 'physics', name: 'Physics', icon: '⚡', requiredFor: ['Biological Sciences', 'Food Science & Technology', 'Environmental Studies', 'Environmental Earth Systems Science', 'Industrial Design', 'Landscape Architecture', 'Computer Science', 'Speech and Language Therapy'] },
+            { id: 'chemistry', name: 'Chemistry', icon: '🧪', requiredFor: ['Medicine', 'Dentistry', 'Process Engineering & Synthetic Chemistry (NEW for AY25-26)', 'Food Science & Technology', 'Chemistry & Biological Chemistry', 'Biological Sciences', 'Environmental Studies', 'Environmental Earth Systems Science', 'Speech and Language Therapy'] },
+            { id: 'mathematics', name: 'Mathematics', icon: '📐', requiredFor: ['Business Analytics', 'Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Computer Science', 'Data Science & Economics / Artificial Intelligence', 'Accountancy', 'Business', 'Economics', 'Philosophy, Politics & Economics', 'Environmental Studies', 'Industrial Design', 'Landscape Architecture', 'Food Science & Technology', 'Chemistry & Biological Chemistry', 'Speech and Language Therapy'] },
+            { id: 'economics', name: 'Economics', icon: '📊', requiredFor: ['Accountancy', 'Business', 'Economics', 'Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Environmental Studies', 'Environmental Earth Systems Science', 'Industrial Design', 'Landscape Architecture', 'Speech and Language Therapy'] },
+            { id: 'further-math', name: 'Further Mathematics', icon: '🔢', requiredFor: ['Business Analytics', 'Food Science & Technology'] },
+            { id: 'computing', name: 'Computing', icon: '💻', requiredFor: ['Computer Science', 'Food Science & Technology', 'Environmental Earth Systems Science'] },
+            { id: 'literature', name: 'Literature', icon: '📚', requiredFor: ['Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Environmental Studies', 'Accountancy', 'Business', 'Economics', 'Industrial Design', 'Landscape Architecture'] },
+            { id: 'history', name: 'History', icon: '🏛️', requiredFor: ['Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Environmental Studies', 'Accountancy', 'Business', 'Economics', 'Industrial Design', 'Landscape Architecture'] },
+            { id: 'geography', name: 'Geography', icon: '🌍', requiredFor: ['Environmental Studies', 'Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Accountancy', 'Business', 'Economics'] },
+            { id: 'arts', name: 'Art/CLL/CSE/TSD/TLL', icon: '🎨', requiredFor: ['Industrial Design', 'Landscape Architecture', 'Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Environmental Studies', 'Accountancy', 'Business', 'Economics'] }
+        ];
+
+        const VALID_COMBINATIONS = [
+            { id: 'pcm', subjectIds: ['physics', 'chemistry', 'mathematics'], category: 'Science' },
+            { id: 'bcm', subjectIds: ['biology', 'chemistry', 'mathematics'], category: 'Science' },
+            { id: 'pme', subjectIds: ['physics', 'mathematics', 'economics'], category: 'Science' },
+            { id: 'cme', subjectIds: ['chemistry', 'mathematics', 'economics'], category: 'Science' },
+            { id: 'bme', subjectIds: ['biology', 'mathematics', 'economics'], category: 'Science' },
+            { id: 'pmfm', subjectIds: ['physics', 'mathematics', 'further-math'], category: 'Science' },
+            { id: 'pcompm', subjectIds: ['physics', 'computing', 'mathematics'], category: 'Science' },
+            { id: 'ccompm', subjectIds: ['chemistry', 'computing', 'mathematics'], category: 'Science' },
+            { id: 'lit-hist-arts', subjectIds: ['literature', 'history', 'arts'], category: 'Humanities' },
+            { id: 'lit-hist-econ', subjectIds: ['literature', 'history', 'economics'], category: 'Humanities' },
+            { id: 'lit-geog-arts', subjectIds: ['literature', 'geography', 'arts'], category: 'Humanities' },
+            { id: 'lit-geog-econ', subjectIds: ['literature', 'geography', 'economics'], category: 'Humanities' },
+            { id: 'lit-econ-arts', subjectIds: ['literature', 'economics', 'arts'], category: 'Humanities' },
+            { id: 'hist-econ-arts', subjectIds: ['history', 'economics', 'arts'], category: 'Humanities' },
+            { id: 'geog-econ-arts', subjectIds: ['geography', 'economics', 'arts'], category: 'Humanities' }
+        ];
+
+        const UNIVERSAL_COURSES = ['Law', 'Architecture', 'Humanities Arts & Social Sciences', 'Maritime Studies', 'NIE (Arts/Science/Sport Science & Management)', 'Communication Studies'];
+        
+        const ALL_DEFINED_COURSES = [
+            'Law', 'Nursing', 'Architecture', 'Engineering', 'Robotics (NEW for AY25-26)', 'Physics / Applied Physics', 'Industrial Design', 'Landscape Architecture', 'Business Analytics', 
+            'Common Computer Science Programmes', 'Information Security', 'Business Artificial Intelligence Systems', 'Computer Engineering', 'Computer Science', 
+            'Data Science & Economics / Artificial Intelligence', 'Environmental Studies', 'Food Science & Technology', 'Humanities Arts & Social Sciences', 
+            'Biological Sciences', 'Chemistry & Biological Chemistry', 'Environmental Earth Systems Science', 'Philosophy, Politics & Economics', 'Accountancy', 
+            'Business', 'Economics', 'Maritime Studies', 'NIE (Arts/Science/Sport Science & Management)', 'Communication Studies', 'Medicine', 'Pharmacy', 'Dentistry', 
+            'Process Engineering & Synthetic Chemistry (NEW for AY25-26)', 'Pharmaceutical Sciences', 'Dietetics and Nutrition', 'Diagnostic Radiography', 
+            'Physiotherapy', 'Occupational Therapy', 'Radiation Therapy (Next intake: AY2026 - Intakes happen every 2 years)', 'Speech and Language Therapy'
+        ];
+
+        // --- COMPONENTS ---
+
+        const LucideIcon = ({ name, className = "w-5 h-5" }) => {
+            const [icon, setIcon] = useState(null);
+            useEffect(() => {
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [name]);
+            return <i data-lucide={name} className={className}></i>;
+        };
+
+        const Button = ({ children, variant = 'primary', fullWidth = false, className = '', ...props }) => {
+            const baseStyles = "inline-flex items-center justify-center px-6 py-3 border text-sm font-bold rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 transform active:scale-[0.98] shadow-sm";
+            const variants = {
+                primary: "border-transparent text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500 shadow-lg shadow-blue-500/30",
+                secondary: "border-transparent text-slate-700 bg-slate-200 hover:bg-slate-300 focus:ring-slate-500 shadow-slate-500/10",
+                outline: "border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-blue-500 hover:text-blue-600 focus:ring-blue-500"
+            };
+            return (
+                <button className={`${baseStyles} ${variants[variant]} ${fullWidth ? "w-full" : ""} ${className}`} {...props}>
+                    {children}
+                </button>
+            );
+        };
+
+        const Card = ({ children, className = '' }) => (
+            <div className={`bg-white rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 w-full max-w-2xl mx-auto border border-white/50 animate-fade-in-up ${className}`}>
+                {children}
+            </div>
+        );
+
+        const CombinationCard = ({ combination, isSelected, onSelect }) => {
+            const subjects = combination.subjectIds.map(id => SUBJECTS_DATA.find(s => s.id === id)).filter(Boolean);
+            return (
+                <div 
+                    onClick={() => onSelect(combination.id)}
+                    className={`relative cursor-pointer rounded-2xl p-4 text-left transition-all duration-300 border h-full flex flex-col group ${isSelected ? 'bg-blue-50 border-blue-500 shadow-xl shadow-blue-500/20 transform -translate-y-1' : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-lg hover:-translate-y-1'}`}
+                >
+                    <div className="flex -space-x-2 mb-3 overflow-hidden py-1">
+                        {subjects.map((sub, idx) => (
+                            <div key={sub.id} className="w-8 h-8 rounded-full bg-white border-2 border-slate-100 flex items-center justify-center text-lg shadow-sm z-10 transition-transform group-hover:scale-110" style={{ zIndex: subjects.length - idx }}>
+                                {sub.icon}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="space-y-1">
+                        {subjects.map((sub, idx) => (
+                            <div key={sub.id} className={`text-xs font-semibold transition-colors ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
+                                {idx + 1}. {sub.name}
+                            </div>
+                        ))}
+                    </div>
+                    {isSelected && (
+                        <div className="absolute top-3 right-3 text-blue-500">
+                            <LucideIcon name="check-circle-2" className="w-5 h-5" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [screen, setScreen] = useState('intro');
+            const [selectedCombId, setSelectedCombId] = useState(null);
+
+            const selectedSubjects = useMemo(() => {
+                if (!selectedCombId) return new Set();
+                const comb = VALID_COMBINATIONS.find(c => c.id === selectedCombId);
+                return comb ? new Set(comb.subjectIds) : new Set();
+            }, [selectedCombId]);
+
+            const getResults = useMemo(() => {
+                if (selectedSubjects.size === 0) return [];
+                const results = [];
+                const has = (id) => selectedSubjects.has(id);
+                const hasPCM = has('physics') && has('chemistry') && has('mathematics');
+
+                ALL_DEFINED_COURSES.forEach(course => {
+                    if (UNIVERSAL_COURSES.includes(course) || hasPCM) {
+                        results.push({ name: course, isAvailable: true });
+                        return;
+                    }
+
+                    // Special logic blocks
+                    if (course === 'Medicine' || course === 'Dentistry') {
+                        if (has('chemistry') && (has('biology') || has('physics'))) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires Chem + (Bio or Phy)' });
+                        return;
+                    }
+                    if (course === 'Process Engineering & Synthetic Chemistry (NEW for AY25-26)') {
+                        if (has('mathematics') && has('chemistry')) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires Math + Chem' });
+                        return;
+                    }
+                    if (course === 'Chemistry & Biological Chemistry') {
+                        if (has('chemistry') && (has('mathematics') || has('physics'))) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires Chem + (Math or Phy)' });
+                        return;
+                    }
+                    if (course === 'Pharmacy' || course === 'Pharmaceutical Sciences') {
+                        if (has('chemistry') && (has('biology') || has('physics') || has('mathematics') || has('further-math'))) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires Chem + 1 Science/Math' });
+                        return;
+                    }
+                    if (course === 'Robotics (NEW for AY25-26)' || course === 'Engineering') {
+                        if (has('mathematics') && (has('physics') || has('chemistry') || has('biology') || has('computing'))) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires Math + Science/Comp' });
+                        return;
+                    }
+                    if (course === 'Physics / Applied Physics') {
+                        if (has('physics') && has('mathematics')) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires Phy + Math' });
+                        return;
+                    }
+
+                    // Multi-choice logic
+                    const nursingL = ['biology', 'chemistry', 'computing', 'physics', 'mathematics'].filter(has).length;
+                    if (course === 'Nursing') {
+                        if (nursingL >= 2) results.push({ name: course, isAvailable: true });
+                        else results.push({ name: course, isAvailable: false, reason: 'Requires any 2 Science/Math' });
+                        return;
+                    }
+
+                    // Fallback to constants mapping
+                    const requiredSubjects = SUBJECTS_DATA.filter(s => s.requiredFor.includes(course));
+                    if (requiredSubjects.some(s => has(s.id))) {
+                        results.push({ name: course, isAvailable: true });
+                    } else {
+                        const reqNames = requiredSubjects.map(s => s.name).join(' / ');
+                        results.push({ name: course, isAvailable: false, reason: `Requires: ${reqNames || 'Specific H2'}` });
+                    }
+                });
+
+                return results.sort((a, b) => a.isAvailable === b.isAvailable ? a.name.localeCompare(b.name) : (a.isAvailable ? 1 : -1));
+            }, [selectedSubjects]);
+
+            const availableCount = getResults.filter(r => r.isAvailable).length;
+            const blockedCount = getResults.length - availableCount;
+
+            const renderIntro = () => (
+                <Card className="text-center">
+                    <h1 className="text-3xl md:text-5xl font-black text-slate-800 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-cyan-600 leading-tight">
+                        H2 Subject Impact Quiz
+                    </h1>
+                    <p className="text-slate-500 mb-8 leading-relaxed font-medium">
+                        Discover which university courses you qualify for based on your H2 subject combination.
+                    </p>
+                    <div className="bg-blue-50 border-l-4 border-blue-400 p-4 text-left rounded-r-lg mb-8">
+                        <p className="text-blue-900 text-sm">
+                            <strong>Note:</strong> Data for local universities (2025). Always verify with official sources.
+                        </p>
+                    </div>
+                    <Button fullWidth onClick={() => setScreen('quiz')} className="py-4 text-lg">
+                        Start Quiz <LucideIcon name="arrow-right" className="ml-2 w-5 h-5" />
+                    </Button>
+                </Card>
+            );
+
+            const renderQuiz = () => (
+                <div className="w-full max-w-5xl mx-auto py-8 px-4 animate-fade-in-up">
+                    <button onClick={() => setScreen('intro')} className="mb-6 flex items-center text-white/90 hover:text-white transition-colors bg-white/10 px-4 py-2 rounded-lg text-sm border border-white/20">
+                        <LucideIcon name="arrow-left" className="mr-2 w-4 h-4" /> Back
+                    </button>
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-black text-white mb-2">Select Your Combination</h2>
+                        <p className="text-white/70">Choose the H2 combination that matches your profile.</p>
+                    </div>
+                    <div className="space-y-12">
+                        {['Science', 'Humanities'].map(cat => (
+                            <div key={cat}>
+                                <h3 className={`text-xl font-bold text-white mb-6 pl-3 border-l-4 ${cat === 'Science' ? 'border-blue-500' : 'border-emerald-500'}`}>
+                                    {cat === 'Science' ? 'Science & Mathematics' : 'Humanities & Arts'}
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {VALID_COMBINATIONS.filter(c => c.category === cat).map(comb => (
+                                        <CombinationCard key={comb.id} combination={comb} isSelected={selectedCombId === comb.id} onSelect={(id) => { setSelectedCombId(id); setScreen('results'); }} />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+
+            const renderResults = () => {
+                const selectedNames = SUBJECTS_DATA.filter(s => selectedSubjects.has(s.id)).map(s => s.name);
+                return (
+                    <Card className="my-8 max-w-3xl">
+                        <div className="flex flex-col md:flex-row justify-between gap-6 mb-8 pb-8 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-3xl font-black text-slate-800 mb-2">Your Results</h2>
+                                <div className="text-slate-500 flex items-center gap-2 text-sm font-medium">
+                                    <LucideIcon name="book-open" className="w-4 h-4" />
+                                    <span>{selectedNames.join(', ')}</span>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 self-start">
+                                <div className="text-center px-2">
+                                    <div className="text-[10px] text-slate-500 font-bold uppercase">Eligible</div>
+                                    <div className="text-2xl font-black text-emerald-600">{availableCount}</div>
+                                </div>
+                                <div className="w-px h-8 bg-slate-200"></div>
+                                <div className="text-center px-2">
+                                    <div className="text-[10px] text-slate-500 font-bold uppercase">Locked</div>
+                                    <div className="text-2xl font-black text-rose-500">{blockedCount}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-10 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 border border-blue-100 rounded-2xl">
+                            <div className="flex gap-4">
+                                <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm">
+                                    <LucideIcon name="info" className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-3">
+                                    <h4 className="text-lg font-bold text-slate-800">Guiding Principle</h4>
+                                    <p className="text-slate-700 leading-relaxed italic">
+                                        "The objective is for you to enjoy learning and do as well as possible. Choose based on your strengths and interests, not just to maximize options."
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-8">
+                            {blockedCount > 0 && (
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                        <LucideIcon name="x-circle" className="text-rose-500 w-5 h-5" /> Locked Courses
+                                    </h3>
+                                    <div className="grid gap-2">
+                                        {getResults.filter(r => !r.isAvailable).map(c => (
+                                            <div key={c.name} className="bg-rose-50/50 p-3 rounded-xl border border-rose-100 flex justify-between items-center text-sm">
+                                                <span className="font-semibold text-slate-700">{c.name}</span>
+                                                <span className="text-rose-600 text-xs font-bold bg-white px-2 py-1 rounded shadow-sm">{c.reason}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                    <LucideIcon name="check-circle" className="text-emerald-600 w-5 h-5" /> Eligible Courses
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {getResults.filter(r => r.isAvailable).map(c => (
+                                        <div key={c.name} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex items-center justify-between hover:border-emerald-200 transition-colors text-sm">
+                                            <span className="font-medium text-slate-700">{c.name}</span>
+                                            <LucideIcon name="check" className="text-emerald-500 w-4 h-4" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-10 pt-6 border-t border-slate-100">
+                            <Button variant="secondary" fullWidth onClick={() => { setScreen('quiz'); setSelectedCombId(null); }}>
+                                <LucideIcon name="refresh-cw" className="mr-2 w-4 h-4" /> Start Over
+                            </Button>
+                        </div>
+                    </Card>
+                );
+            };
+
+            return (
+                <div className="min-h-screen w-full bg-gradient-to-b from-slate-900 to-black flex flex-col items-center justify-center p-4">
+                    {screen === 'intro' && renderIntro()}
+                    {screen === 'quiz' && renderQuiz()}
+                    {screen === 'results' && renderResults()}
+                    <footer className="mt-8 text-slate-500 text-xs font-medium">
+                        &copy; {new Date().getFullYear()} H2 Subject Impact Quiz
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
